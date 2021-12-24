@@ -824,7 +824,14 @@ void copier_entete(lovc* fich, Entete* entete){
 
 
 void main(){ 
+    srand(time(NULL));
+    char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1];
+    generer_tab_wilaya(tab_wilaya);
+    enregistrement enr ;
+    alea_enregistrement(&enr,0,tab_wilaya);
+    char* copy;
+    enr_to_string(enr,&copy);
+    printf("("%s")\n",copy);
 
-    
    
 }
