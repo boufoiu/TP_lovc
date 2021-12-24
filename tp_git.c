@@ -825,14 +825,12 @@ void copier_entete(lovc* fich, Entete* entete){
 
 
 void main(){ 
-    srand(time(NULL));
-    char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1];
-    generer_tab_wilaya(tab_wilaya);
-    enregistrement enr ;
-    alea_enregistrement(&enr,0,tab_wilaya);
-    char* copy;
-    enr_to_string(enr,&copy);
-    printf("("%s")\n",copy);
+    entete->tete = Entete_info(fich,1);
+    entete->nb_ins = Entete_info(fich,2);
+    entete->nb_car_sup = Entete_info(fich,3);
+    entete->adr_dernier_bloc = Entete_info(fich,4);
+    entete->position_dns_dernier_bloc = Entete_info(fich,5);
+    entete->nbbloc = Entete_info(fich,6);
 
    
 }
