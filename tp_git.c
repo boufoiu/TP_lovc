@@ -290,7 +290,7 @@ char alea_type(){
 //generer une observation aleatoirement                                      ***** marche *****     
 void alea_observation(char** obs){
     int min_taille = TAILLE_CLE+TAILLE_SUPERFICIE+TAILLE_TYPE+TAILLE_WILAYA;
-    int taille = alea_nb(min_taille,TAILLE_BLOC);
+    int taille = alea_nb(min_taille,TAILLE_BLOC-min_taille-2);
     printf("taille  = %d\n",taille); 
     *obs = malloc(sizeof(char)*taille);
     int i,i1 , i2, i3 , count = 0;
