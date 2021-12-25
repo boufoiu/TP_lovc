@@ -378,54 +378,6 @@ void alea_enregistrement(enrengistrement* enr, int min , char tab_wilaya[NB_WILA
     strcpy(enr->observation,observation);  
 }
 
-
-//ecrit un enregistrement dans un bloc 
-void ecrire_enr_dans_bloc(lovc*f , Entete* head , enrengistrement* enr , maillon* buf){
-
-    char* copy;
-    int dernier = head->adr_dernier_bloc;
-    int position = head->position_dns_dernier_bloc;
-    int i ;
-    enr_to_string(*enr,&copy);
-    if(strlen(copy)<(TAILLE_BLOC-position)){
-            if(position == 0){
-                strcpy(buf->tab,copy);
-            }           
-            else{
-                strcat(buf->tab,copy);
-            }
-            head->position_dns_dernier_bloc += strlen(copy);        
-
-        }
-        else{
-            for(i = 0 ; i < TAILLE_BLOC-position ; i++){
-                buf->tab[position] = copy[i];
-                position++;
-            }
-            buf->tab[position]='\0';
-            buf->suivant = -1;
-            EcrireDir(f,head->adr_dernier_bloc,buf);
-            if(head->nbbloc != 0){          // le fichier contient deja des blocs 
-                LireDir(f,head->nbbloc,buf);
-                buf->suivant = head->nbbloc + 1;
-                EcrireDir(f,head->nbbloc,buf);
-            }
-            head->nbbloc++;
-            head->adr_dernier_bloc++;
-            sprintf(buf->tab,"%s",""); 
-            position = 0;
-            while(i<strlen(copy)){
-                buf->tab[position] = copy[i];
-                position++;
-                i++;
-            }
-            head->position_dns_dernier_bloc = position;           
-            
-        }   
-        head->nb_ins += strlen(copy); 
-
-}
-
 // afficher entete
 void affichier_entete(lovc* f){
     printf("entete.tete = %d\n",Entete_info(f,1));
