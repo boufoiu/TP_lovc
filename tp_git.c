@@ -9,7 +9,7 @@
 #define TAILLE_TYPE 1
 #define TAILLE_CLE 10
 #define MIN_CLE 100
-#define MAX_SUPERFICIE 1000
+#define MAX_SUPERFICIE 9999999999
 #define MIN_SUPERFICIE 500
 #define NB_WILAYA_TOTAL 58
 #define MIN_NB_LIVRETS_ALEATOIRES 3
@@ -22,30 +22,30 @@
 //Declaration de l'enrengistrement 
 typedef struct enrengistrement
 {
-    long long int cle;                    // la clee unique 
-    int effacer;                          // champ de supression logiqe
+    long long int cle;                      // la clee unique 
+    int effacer;                            // champ de supression logiqe
     char wilaya[TAILLE_WILAYA+1];           // champ wilaya ou se trouve le bien
     char superficie[TAILLE_SUPERFICIE+1];   // la superficie du bien
-    char type;               // peut etre :terrain(T),maison(M),appartement(A),immeuble(I)
-    char* observation;                    // pour la caracterisation du bien 
+    char type;                              // peut etre :terrain(T),maison(M),appartement(A),immeuble(I)
+    char* observation;                      // pour la caracterisation du bien 
 }enrengistrement;
 
 //Declaration du bloc do LOVC
 typedef struct tbloc
 {
     char tab[TAILLE_BLOC+1]; 
-    int suivant;                // numero du bloc suivant
+    int suivant;                            // numero du bloc suivant
 }maillon;
 
 //Declaration de l'entete de la LOVC
 typedef struct Entete
 {
     int tete;
-    int nb_ins;                      // nombre de caracteres iserees
-    int nb_car_sup;                  // nombre de caracteres suprimees 
-    int adr_dernier_bloc;            // numero du dernier bloc 
-    int position_dns_dernier_bloc;   // position de dernier caractere inseree dans le dernier bloc du fichier
-    int nbbloc;                      // nombre de blocs dans le ficheir 
+    int nb_ins;                             // nombre de caracteres iserees
+    int nb_car_sup;                         // nombre de caracteres suprimees 
+    int adr_dernier_bloc;                   // numero du dernier bloc 
+    int position_dns_dernier_bloc;          // position de dernier caractere inseree dans le dernier bloc du fichier
+    int nbbloc;                             // nombre de blocs dans le ficheir 
 }Entete;
 
 //Declaration de la structure LOVC
@@ -100,7 +100,7 @@ void Aff_entete(lovc* f, int i, int val){
     }
 }
 
-// retourne la valeur "val" de l'entete                             ***** marche *****
+// Retourne la valeur "val" de l'entete                             
 int Entete_info(lovc* f, int i){
     switch (i)
     {
@@ -127,21 +127,14 @@ int Entete_info(lovc* f, int i){
     }
 
 }
-// ouvrire un fichier lovc 
+// Ouvrire un fichier lovc 
 lovc* Ouvrir(lovc* f, char nom[], char mode){
     maillon buf;
     lovc *fichier = malloc(sizeof(lovc));                                                                    
     if (mode == 'A' || mode == 'a')
     { 
-        fichier->fichier = fopen(nom,"rb+");                                 // ouverture du fichier en mode binaire lecture et ecriture
-        Entete entete;
-        fread(&entete,sizeof(Entete),1,fichier->fichier);    // chargement de l'entete enregistree en debut de fichier
-        Aff_entete(fichier, 1, entete.tete);                      // mettre tete au premier bloc
-        Aff_entete(fichier, 2, entete.nb_ins);                    // mise a zero le nombre de caractere inserer puisque le bloc est vide
-        Aff_entete(fichier, 3, entete.nb_car_sup);                // aucun caractere n'a encore ete supprime
-        Aff_entete(fichier, 4, entete.adr_dernier_bloc);          // la queue est la tete puisque le fichier est vide
-        Aff_entete(fichier, 5, entete.position_dns_dernier_bloc); // le premier caractere du ficheir correspond a la position libre puisqu'il est nouveau
-        Aff_entete(fichier, 6, entete.nbbloc);
+        f->fichier = fopen(nom,"rb+");                                      // ouverture du fichier en mode binaire lecture et ecriture
+        fread(&(f->entete),sizeof(Entete),1,fichier->fichier);             // chargement de l'entete enregistree en debut de fichier
     }
     else{
         if ((mode == 'N') || (mode == 'n'))
@@ -195,7 +188,7 @@ void  alloc_bloc(lovc *fichier)
 //______________ Fonctions ______________//
 //_______________________________________//
 
-// retourne la longueure d'un nembre                            ***** marche *****
+// Retourne la longueure d'un nembre                            
 int longueur(long long int n){
     int count = 0;
     if(n==0){
@@ -209,7 +202,7 @@ int longueur(long long int n){
     return count;
 }
 
-// convertie un entier a une chaine de caracteres               ***** marche *****
+//Convertie un entier a une chaine de caracteres               
 void int_to_char(long long int number, char* sortie){
 
     int save = longueur(number);
@@ -221,7 +214,7 @@ void int_to_char(long long int number, char* sortie){
     sortie[save] = '\0';
 }
 
-// convertie un enregistrement a une chaine de caracteres               ***** marche *****
+// convertie un enregistrement a une chaine de caracteres               
 void enr_to_string(enrengistrement info, char** string){
 
     *string = malloc(sizeof(enrengistrement));
@@ -252,18 +245,18 @@ void enr_to_string(enrengistrement info, char** string){
 
 */
 
- //retourne un nembre aleatoire entre a et b                        ***** marche *****
- long long int alea_nb(long long int a ,long long int b){    //   srand(time(NULL));  au debut de la fonction appelante 
-     return a + rand()%(b+1-a);
+//retourne un nembre aleatoire entre a et b                        
+long long int alea_nb(long long int a ,long long int b){    //   srand(time(NULL));  au debut de la fonction appelante 
+    return a + rand()%(b+1-a);
 }
-// retourne une chaine pour le champs superficie                     ***** marche ***** 
+// Retourne une chaine pour le champs superficie                     
 void alea_superficie(char* superficie){
     char s[TAILLE_SUPERFICIE+1];
     int_to_char(alea_nb(MIN_SUPERFICIE,MAX_SUPERFICIE),s);
     strcpy(superficie,s); 
 }
 
-// retourne un type aleatoire                                           ***** marche *****
+// Retourne un type aleatoire                                           
 char alea_type(){
     int i = 1 + rand()%4;
     
@@ -334,29 +327,25 @@ void alea_observation(char** obs){
 /////////////////////
 
 // generer le tableau des wilaya                                          ***** marche *****
-void generer_tab_wilaya(char tab[NB_WILAYA_TOTAL][TAILLE_WILAYA+1] ){
-   
+void generer_tab_wilaya(char tab[NB_WILAYA_TOTAL][TAILLE_WILAYA] ){
     FILE* f = fopen("wilaya.txt","r");
-    if (f==NULL){
+    if (f == NULL){
         printf("le fichier n'a pas etait ouvert \n");
-        return;
+        return ;
     }
     else
     {
-        char w[TAILLE_WILAYA+1];
-        for(int i = 0 ; i < NB_WILAYA_TOTAL ; i++){
+        char w[20];
+        for(int i = 0 ; i < 61 ; i++){
             fscanf(f,"%s",w);
-             for (int j = 0 ; j<=strlen(w)+1; j++) 
-             { 
-                 tab[i][j] = w[j];
-             } 
+            strcpy(tab[i],  w); 
         }
-    }   
+    }
 }
 
 // generer une wilaya aleatoirement                             ***** marche ***** 
 void alea_wilaya(char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1], char* wilaya){
-    int i =alea_nb(0,NB_WILAYA_TOTAL-1);
+    int i = alea_nb(0,NB_WILAYA_TOTAL-1);
     strcpy(wilaya,tab_wilaya[i]);
 }
 
@@ -407,6 +396,10 @@ void copier_entete(lovc* fich, Entete* entete){
 }
 
 
-void main(){ 
-
+int main(){ 
+    char tab[NB_WILAYA_TOTAL][TAILLE_WILAYA], wilaya[TAILLE_WILAYA];
+    generer_tab_wilaya(tab);
+    alea_wilaya(tab, wilaya);
+    printf("the wilaya is: %s",wilaya);
+    return 0;
 }
