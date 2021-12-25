@@ -8,12 +8,13 @@
 #define MAX_CLE 1000
 #define TAILLE_TYPE 1
 #define TAILLE_CLE 10
-#define MIN_CLE 100
 #define MAX_SUPERFICIE 1000
 #define MIN_SUPERFICIE 500
 #define NB_WILAYA_TOTAL 58
 #define MIN_NB_LIVRETS_ALEATOIRES 3
 #define MAX_NB_LIVRETS_ALEATOIRES 6
+#define MIN_LIVRETS_ALEATOIRES 2
+#define MAX_LIVRETS_ALEATOIRES 5
 
 //_______________________________________//
 //_______________ Structures ______________//
@@ -183,12 +184,13 @@ void  alloc_bloc(lovc *fichier)
     maillon *buf = malloc(sizeof(maillon));             // allocation du Buffer
     LireDir(fichier, Entete_info(fichier,4), buf);           // lecture du bloc correspondant a la queue
     buf->suivant = Entete_info(fichier,6) + 1;               // mise a jour de suivant de la queue au bloc correspondant a la nouvelle queue
-    EcrireDir(fichier, Entete_info(fichier,5),buf);          // ecriture du bloc de queue dans le fichier
-    Aff_entete(fichier, 3, Entete_info(fichier,1)+1);        // mise a jour du numero du bloc correspondant a la nouvelle queue dan sl'entete
+    EcrireDir(fichier, Entete_info(fichier,4),buf);          // ecriture du bloc de queue dans le fichier
+    Aff_entete(fichier, 4, Entete_info(fichier,6)+1);        // mise a jour du numero du bloc correspondant a la nouvelle queue dan sl'entete
     buf->suivant = -1;                                  // mise a jour du suivant a nill
     sprintf(buf->tab,"%s","");                          // vider la chaine du buffer
-    EcrireDir(fichier, Entete_info(fichier,3), buf);         // ecriture du buffer dans le bloc representatnt la nouvelle queue
-    Aff_entete(fichier, 1, Entete_info(fichier,1) + 1);      // incrementation du nombre de bloc alloues
+    EcrireDir(fichier, Entete_info(fichier,4), buf);         // ecriture du buffer dans le bloc representatnt la nouvelle queue
+    Aff_entete(fichier, 6, Entete_info(fichier,6) + 1);      // incrementation du nombre de bloc alloues
+    Aff_entete(fichier,5,0);                                // la position dans le dernier bloc est 0
 }
 
 //_______________________________________//
@@ -290,7 +292,7 @@ char alea_type(){
 //generer une observation aleatoirement                                      ***** marche *****     
 void alea_observation(char** obs){
     int min_taille = TAILLE_CLE+TAILLE_SUPERFICIE+TAILLE_TYPE+TAILLE_WILAYA;
-    int taille = alea_nb(min_taille,TAILLE_BLOC);
+    int taille = alea_nb(min_taille,TAILLE_BLOC-min_taille-2);
     printf("taille  = %d\n",taille); 
     *obs = malloc(sizeof(char)*taille);
     int i,i1 , i2, i3 , count = 0;
@@ -361,13 +363,14 @@ void alea_wilaya(char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1], char* wilaya
 }
 
 // generer un enregistrement aleatoire                          ***** marche *****
-void alea_enregistrement(enrengistrement* enr, int min , char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1]){
+void alea_enregistrement(enrengistrement* enr, int* min , char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1]){
     char wilaya[TAILLE_WILAYA+1];
     long long int cle;
     char superficie[TAILLE_SUPERFICIE+1];
     char* observation;
     enr->effacer = 0;
-    enr->cle = alea_nb(min,MAX_CLE);
+    enr->cle = alea_nb(*min,MAX_CLE);
+    *min = enr->cle+1;
     alea_wilaya(tab_wilaya,wilaya);
     strcpy(enr->wilaya,wilaya);
     enr->type = alea_type();
@@ -377,6 +380,86 @@ void alea_enregistrement(enrengistrement* enr, int min , char tab_wilaya[NB_WILA
     enr->observation = malloc(sizeof(char)*(strlen(observation)+1));
     strcpy(enr->observation,observation);  
 }
+
+// copier l'entete fu lovc 
+void copier_entete(lovc* fich, Entete* entete){
+    entete->tete = Entete_info(fich,1);
+    entete->nb_ins = Entete_info(fich,2);
+    entete->nb_car_sup = Entete_info(fich,3);
+    entete->adr_dernier_bloc = Entete_info(fich,4);
+    entete->position_dns_dernier_bloc = Entete_info(fich,5);
+    entete->nbbloc = Entete_info(fich,6);
+}
+
+//ecrit un enregistrement dans un bloc 
+void ecrire_enr_dans_bloc(lovc*f , Entete* head , enrengistrement* enr , maillon* buf){
+
+    char* copy;
+    int dernier = head->adr_dernier_bloc;
+    int position = head->position_dns_dernier_bloc;
+    int i = 0 ;
+    enr_to_string(*enr,&copy);
+    if(strlen(copy)<(TAILLE_BLOC-head->position_dns_dernier_bloc)){
+            if(position == 0){
+                strcpy(buf->tab,copy);
+            }           
+            else{
+                strcat(buf->tab,copy);
+            }
+            head->position_dns_dernier_bloc += strlen(copy);
+            head->nb_ins += strlen(copy);      
+
+        }
+        else{
+            if(position != TAILLE_BLOC){
+            for(i = 0 ; i < TAILLE_BLOC-head->position_dns_dernier_bloc ; i++){
+                buf->tab[position] = copy[i];
+                position++;
+            }
+            }
+            buf->tab[TAILLE_BLOC]='\0';
+            buf->suivant = -1;
+            EcrireDir(f,head->adr_dernier_bloc,buf);
+            alloc_bloc(f);
+            copier_entete(f,head); 
+            sprintf(buf->tab,"%s","");
+            buf->suivant = -1;
+            position = 0; 
+            while(i<strlen(copy)){
+                buf->tab[position] = copy[i];
+                position++;
+                i++;
+            }
+            head->position_dns_dernier_bloc = position;
+            head->nb_ins += strlen(copy);           
+            
+        }    
+
+}
+// creer le fichier lovc  « Livrets_National.bin »
+lovc* creer_lovc(void){
+    lovc* f = malloc(sizeof(lovc));
+    f = Ouvrir(f,"Livrets_National.bin",'N');
+    Entete head;
+    copier_entete(f,&head);
+    maillon buf;
+    enrengistrement enr;
+    char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1];
+    generer_tab_wilaya(tab_wilaya);
+    int nb_livrets = alea_nb(MIN_LIVRETS_ALEATOIRES,MAX_LIVRETS_ALEATOIRES);
+    int min_cle = 1;    //la clee minimale
+    for(int i = 0;i<nb_livrets;i++){
+        alea_enregistrement(&enr,&min_cle,tab_wilaya);
+        ecrire_enr_dans_bloc(f,&head,&enr,&buf);
+    }
+    EcrireDir(f,head.adr_dernier_bloc,&buf);
+    rewind(f->fichier);
+    fwrite(&head,sizeof(Entete),1,f->fichier);
+    fermer(f);
+    return f ; 
+
+}
+
 
 // afficher entete
 void affichier_entete(lovc* f){
@@ -396,17 +479,182 @@ void afficher_bloc(lovc* fich , int i ){
     else
         printf("%s \n",buf.tab);
 }
-// copier l'entete fu lovc 
-void copier_entete(lovc* fich, Entete* entete){
-    entete->tete = Entete_info(fich,1);
-    entete->nb_ins = Entete_info(fich,2);
-    entete->nb_car_sup = Entete_info(fich,3);
-    entete->adr_dernier_bloc = Entete_info(fich,4);
-    entete->position_dns_dernier_bloc = Entete_info(fich,5);
-    entete->nbbloc = Entete_info(fich,6);
+
+/////////////////////////////////////////////////::
+/////////////////////////////////////////////////::
+
+// question 3 
+
+// extraire l'enregistrement à partire de la position p dans le bloc k dans lovc
+void extraire_enr_string(lovc* f ,int* k , int* p , char** enr_string){
+    maillon buf;
+    int i = 0;
+    char copy[TAILLE_BLOC];
+    copy[0]='\0';
+    *enr_string = malloc(sizeof(enrengistrement));
+    *enr_string[0]='\0';
+    if(Entete_info(f,1)=1 && Entete_info(f,2)!=0){
+        if(*k==Entete_info(f,1) && p==0){
+            LireDir(f,*k,&buf);
+            strncpy(*enr_string , buf.tab ,strlen(buf.tab)-strlen(strchr(buf.tab,'@')));// copier toute la chaine avant trouver 
+                                                                                        //un caractre de fin d'enregistrement '@' 
+            *p = strlen(*enr_string);                                                                                                                                                          
+        }
+        else{
+            LireDir(f,*k,&buf);
+            if(buf.tab[*p]!='@'){
+                if(strchr(buf.tab,'@') == NULL){
+                    if(buf.suivant==-1){
+                        *k = -1;
+                        return;
+                    }
+                    else{
+                        *k = buf.suivant;
+                        LireDir(f,buf.suivant,&buf);
+                        strcpy(copy,strchr(buf.tab,'@'));
+                        *p = strlen(copy)-1; // positionner p sur le caractere '@'
+                        
+                    }
+                }
+            }
+            if(buf.tab[*p+1]=='\0'){
+                *k = -1;
+                return;            
+            }
+            if(strchr(buf.tab,'@') == NULL){
+                int ref = *p;
+                for(i = 0 ; i < TAILLE_BLOC-ref ; i++){
+                    *enr_string[i]=buf.tab[*p];
+                    *p++;
+                }
+                *enr_string[i] = '\0';
+                *k = buf.suivant;
+                LireDir(f,buf.suivant,&buf);
+                strncat(*enr_string , buf.tab , strlen(buf.tab)-strlen(strchr(buf.tab,'@')));   // la chaine avant trouver à nouveau un '@'
+                *p = strlen(*enr_string)-i; // positionner p sur le caractere '@'           
+            }
+            else{
+                strncpy(*enr_string , buf.tab , strlen(buf.tab)-strlen(strchr(buf.tab,'@')));  // la chaine avant trouver à nouveau un '@'
+                *p += strlen(*enr_string) + 1;          // positionner p sur le prochain '@'
+            }
+        }
+    }
+    else{
+        *k = -1;
+        *p = 0;
+    }
 }
+// chaine to enr                                ***** marche ***** 
+void chaine_to_enr(char* enr_string , enrengistrement* enr){
+    int i = 1;
+    char* copy = malloc(sizeof(char)*strlen(enr_string));
+    strcpy(copy , enr_string);
+    char* champs =  malloc(sizeof(char)*strlen(enr_string));
+    while(i<=6){
+        if(i != 6){
+        strncpy(champs , copy , strlen(copy)-strlen(strchr(copy,'$')));
+        strcpy(copy,strchr(copy , '$'));
+        strcpy(copy,strchr(copy , copy[1]));
+        }
+        switch (i)
+        {
+        case 1:
+            enr->cle = atoi(champs);            
+            break;
+        case 2:
+            enr->effacer = atoi(champs);
+            break;
+        case 3:
+            strcpy(enr->wilaya,champs);
+            break;
+        case 4:
+            strcpy(enr->superficie , champs);
+            break;
+        case 5:
+            enr->type = champs[0];
+            break;
+        case 6:
+            (enr->observation)= malloc(sizeof(char)*(strlen(copy)+1));
+            strcpy(enr->observation,copy);
+            break;    
+
+        default:
+            printf("probleme dans la fonction chaine_to_enr\n ");
+            break;
+        }
+        i++;
+    }
+}
+
+//rechercher un livret
+void rechercher_livrets(int cle , lovc* f , int* trouve , int* num_bloc , int* position ,int* effacer){
+    enrengistrement info;
+    maillon buf;
+    *trouve = 0;
+    *num_bloc = 1;
+    *position = 0;
+    *effacer = 1;
+    int stop = 0;
+    int save_position = 0;
+    int save_bloc = 1;
+    char* copy;
+    if(Entete_info(f,1)!=0 && Entete_info(f,2)!=0){           // le fichier existe 
+        do
+        {   save_position = *position;
+            save_bloc = *num_bloc;
+            extraire_enr_string(f,*num_bloc,*position,&copy);
+            chaine_to_enr(copy,&info);
+            if(info.cle <= cle){
+                stop = 1;       // arreter la recherche
+                *position = save_position+1;
+                *num_bloc = save_bloc+1;
+                if(info.cle == cle ){
+                    *effacer = info.effacer;
+                    *trouve = 1;
+                }
+                else{
+                    *effacer = 1;
+                    *trouve = 0;                    
+                }
+            }
+            if (*num_bloc == -1)
+                stop = 1;            
+        } while (!stop && !trouve );
+        if(stop && *num_bloc==-1){
+            if(Entete_info(f,5)==TAILLE_BLOC){
+                *num_bloc = Entete_info(f,4)+1;
+                *position = 0;
+            }
+            else{
+                *num_bloc = Entete_info(f,4);
+                *position = Entete_info(f,5);
+            }
+        }   
+    }
+}
+
 
 
 void main(){ 
 
+    // tester alea_observation
+    /*srand(time(NULL));                 
+   char* obseration;
+   alea_observation(&obseration);
+   printf("%s \n",obseration);*/
+    
+
+    //tester alea_wilaya
+    /*srand(time(NULL));                
+    char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1];
+    generer_tab_wilaya(tab_wilaya);
+    char wilaya[TAILLE_WILAYA+1];
+    alea_wilaya(tab_wilaya,wilaya);
+    printf("%s \n", wilaya);*/
+
+
+   
+    
+   
 }
+
