@@ -22,7 +22,6 @@
 //Declaration de l'enrengistrement 
 typedef struct enrengistrement
 {
-    char taille_enr[4];                     // la taille d'un enregistrement est sur 3 caracteres
     char cle[TAILLE_CLE+1];                 // la clee unique 
     int effacer;                            // champ de supression logiqe
     char wilaya[TAILLE_WILAYA+1];           // champ wilaya ou se trouve le bien
@@ -74,7 +73,7 @@ void EcrireDir(lovc* f, int i, maillon *buf){
     fwrite(buf, sizeof(maillon), 1, f->fichier);                          // ecrire dans le bloc i
 }
 
-// Affecter la valeur "val" dans le champ "i"                  
+// Affecter la valeur "val" dans le champ "i"                   ***** marche *****
 void Aff_entete(lovc* f, int i, int val){
     switch (i)
     {
@@ -128,21 +127,14 @@ int Entete_info(lovc* f, int i){
     }
 
 }
-// ouvrire un fichier lovc 
+// Ouvrire un fichier lovc 
 lovc* Ouvrir(lovc* f, char nom[], char mode){
     maillon buf;
     lovc *fichier = malloc(sizeof(lovc));                                                                    
     if (mode == 'A' || mode == 'a')
     { 
-        fichier->fichier = fopen(nom,"rb+");                                 // ouverture du fichier en mode binaire lecture et ecriture
-        Entete entete;
-        fread(&entete,sizeof(Entete),1,fichier->fichier);    // chargement de l'entete enregistree en debut de fichier
-        Aff_entete(fichier, 1, entete.tete);                      // mettre tete au premier bloc
-        Aff_entete(fichier, 2, entete.nb_ins);                    // mise a zero le nombre de caractere inserer puisque le bloc est vide
-        Aff_entete(fichier, 3, entete.nb_car_sup);                // aucun caractere n'a encore ete supprime
-        Aff_entete(fichier, 4, entete.adr_dernier_bloc);          // la queue est la tete puisque le fichier est vide
-        Aff_entete(fichier, 5, entete.position_dns_dernier_bloc); // le premier caractere du ficheir correspond a la position libre puisqu'il est nouveau
-        Aff_entete(fichier, 6, entete.nbbloc);
+        f->fichier = fopen(nom,"rb+");                                      // ouverture du fichier en mode binaire lecture et ecriture
+        fread(&(f->entete),sizeof(Entete),1,fichier->fichier);             // chargement de l'entete enregistree en debut de fichier
     }
     else{
         if ((mode == 'N') || (mode == 'n'))
@@ -232,10 +224,8 @@ void enr_to_string(enrengistrement info, char sortie[TAILLE_BLOC]){
 
     char string [TAILLE_BLOC];
     //*sortie = malloc(sizeof(enrengistrement));
-    strcpy(string,info.taille_enr);
-    strcat(string,"$");    
     char cle[TAILLE_CLE+1];
-    strcat(string, info.cle);
+    strcpy(string, info.cle);
     strcat(string, "$");  
     if(info.effacer == 0){
         strcat(string,"0$");
@@ -258,6 +248,16 @@ void enr_to_string(enrengistrement info, char sortie[TAILLE_BLOC]){
     strcpy(sortie, string);
     
 }
+
+// a+(rand())%(b-a) 
+/***     $ : entre deux champs     @  : entre deux livrets
+ *  les fonctions a programmer sont :
+ *          . int alea_nb(int a , int b) // retourne un nembre aleatoire entre a et b                    ****
+ *          . char* alea_wilaya() // retourne le nom d'une wilaya aleatoirement
+ *          . char* alea_superficie() // retourne une chaine pour le champs superficie
+
+
+*/
 //__________________________________________________//
 //______________ Fonctions aleatoires ______________//
 //__________________________________________________//
@@ -305,13 +305,13 @@ char alea_type(){
         break;
     }
 }
-//generer une observation aleatoirement                                        
+//generer une observation aleatoirement                                      ***** marche *****     
 void alea_observation(char** obs,int* longueur){
     int min_taille = TAILLE_CLE+TAILLE_SUPERFICIE+TAILLE_TYPE+TAILLE_WILAYA;
     *longueur = alea_nb(min_taille,TAILLE_BLOC-min_taille-2);
     int taille = *longueur;
     //printf("taille  = %d\n",taille); 
-    *obs = malloc(sizeof(char)*(taille+1));
+    *obs = malloc(sizeof(char)*taille);
     int i,i1 , i2, i3 , count = 0;
     char c[2];
     c[0]=alea_nb(65,90);
@@ -399,7 +399,7 @@ void alea_cle(int* min, char c[TAILLE_CLE+1]){
 
 // generer un enregistrement aleatoire                          
 void alea_enregistrement(enrengistrement* enr, int* min , char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1], int *taille){
-    //printf("la fonction\n");
+    printf("la fonction\n");
     char wilaya[TAILLE_WILAYA+1];
     char cle[TAILLE_CLE+1];
     int taille_obs;
@@ -419,34 +419,16 @@ void alea_enregistrement(enrengistrement* enr, int* min , char tab_wilaya[NB_WIL
     enr->observation = malloc(sizeof(char) * (taille_obs+1));
     strcpy(enr->observation, observation);
     *taille = taille_obs + TAILLE_CLE + TAILLE_SUPERFICIE + TAILLE_TYPE + TAILLE_WILAYA + 1; // 1 pour le champ effacer 
-    int l = *taille;
-    char sortie[4];
-    char taille_enr[4];
-    int_to_char(l,sortie);
-    //printf("%s\n",sortie);
-    int i ;
-    if ( strlen(sortie)<3 )
-    {
-        for (i = 0; i < 3-strlen(sortie); i++)
-        {
-            taille_enr[i] = '0';
-        }
-        taille_enr[i] = '\0';
-        strcat(taille_enr,sortie);                
-    }
-    else{
-        strcpy(taille_enr,sortie);
-    }
-    strcpy(enr->taille_enr,taille_enr);
+    enr->effacer = 0;
 }
 
 // afficher entete
 void afficher_entete(lovc* f){
     printf("entete.tete = %d\n",Entete_info(f,1));
-    printf("entete.nb_ins = %d\n",Entete_info(f,2));
-    printf("entete.nb_car_sup = %d\n",Entete_info(f,3));
+    printf("entete.nb_ind = %d\n",Entete_info(f,2));
+    printf("entete.nb_sup = %d\n",Entete_info(f,3));
     printf("entete.adr_dernier_bloc = %d\n",Entete_info(f,4));
-    printf("entete.position_dns_dernier_bloc = %d\n",Entete_info(f,5));
+    printf("entete.adr_dns_dernier_bloc = %d\n",Entete_info(f,5));
     printf("entete.nbbloc = %d\n",Entete_info(f,6));
 }
 // aficher le ième bloc
@@ -455,9 +437,8 @@ void afficher_bloc(lovc* fich , int i ){
     LireDir(fich, i, &buf);
     if(strlen(buf.tab) == 0)
         printf("le buffers est vide \n");
-    else{
+    else
         printf("%s \n",buf.tab);
-    }
 }
 // copier l'entete fu lovc 
 void copier_entete(lovc* fich, Entete* entete){
@@ -468,109 +449,93 @@ void copier_entete(lovc* fich, Entete* entete){
     entete->position_dns_dernier_bloc = Entete_info(fich,5);
     entete->nbbloc = Entete_info(fich,6);
 }
-//remplire enete
-void remplire_entete(lovc* f , Entete head){
-    Aff_entete(f,1,head.tete);
-    Aff_entete(f,2,head.nb_ins);
-    Aff_entete(f,3,head.nb_car_sup);
-    Aff_entete(f,4,head.adr_dernier_bloc);
-    Aff_entete(f,5,head.position_dns_dernier_bloc);
-    Aff_entete(f,6,head.nbbloc);
-}
 
-// ecrire enregistrement a la fin du fichier
-void ecrire_enr_bloc(lovc* f , maillon* buf , enrengistrement enr){
-    char copy[TAILLE_BLOC];
-    enr_to_string(enr,copy);
-    buf->suivant = -1;
-    int i = Entete_info(f,4);
-    int j = Entete_info(f,5);
-    int k = 0;
-    while (k < strlen(copy))
-    {
-        if(j < TAILLE_BLOC){
-            buf->tab[j] = copy[k];
-            j++;
-            k++;
-        }
-        else{
-            buf->tab[j] = '\0';
-            buf->suivant = Entete_info(f,6) + 1;
-            EcrireDir(f,Entete_info(f,4),buf);
-            i = Entete_info(f,6) + 1;
-            LireDir(f,i,buf);
-            j = 0;
-            Aff_entete(f,6,Entete_info(f,6)+1);
-        }  
-    }
-    buf->tab[j]='\0';
-    Aff_entete(f,2,Entete_info(f,2)+strlen(copy));
-    Aff_entete(f,4,i);
-    Aff_entete(f,5,j);
-    EcrireDir(f,i,buf);
-    FILE* fichier = f->fichier;
-    fseek(fichier,0,SEEK_SET);
-    fwrite(&(f->entete) , sizeof(Entete) , 1 , fichier);    
-}
-// creer fichier  Livrets_National.bin
-lovc* creer_Livrets_National(char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1] , int* nb_enregistrement){
-    lovc* f = Ouvrir(f,"Livrets_National.bin",'N');
-    int nb = alea_nb(1,MAX_NB_LIVRETS_ALEATOIRES);
-    printf("%d\n",nb);
-    int min = 1;
-    *nb_enregistrement = 0;
-    enrengistrement enr;
-    maillon buf;
-    int taille;
-    while (min<MAX_CLE && *nb_enregistrement < nb)
-    {
-        alea_enregistrement(&enr,&min,tab_wilaya,&taille);
-        ecrire_enr_bloc(f,&buf,enr);
-        *nb_enregistrement += 1;
-    }
-    fermer(f);    
-    return f ;
-}
-// afficher le fichier  Livrets_National.bin
-void afficher_Livrets_National(lovc* f){
-    lovc* fich = Ouvrir(fich,"Livrets_National.bin",'A');
-    printf("ouveert\n");
-    afficher_entete(fich);
-    for (int i = 0; i < Entete_info(fich,6); i++)
-    {
-        afficher_bloc(fich,i+1);
-    }
-    fermer(fich);
-    
-}
-
-// recuperer chaine 
-void recuperer_chaine(lovc* f , int* i , int* j , int taille , char chaine[TAILLE_BLOC]){
-    maillon buf;
-    LireDir(f,*i,&buf);
-    int k = 0;
-    while (k < taille)
-    {
-        if(*j < TAILLE_BLOC){
-            chaine[k] = buf.tab[*j];
-            *j += 1;
-            k++;
-        }
-        else{
-            *i = buf.suivant;
-            LireDir(f,*i,&buf);
-            *j = 0;
-        }  
-    }
-}
 
 
 int main(){
     srand(time(NULL));
-    char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1];
-    generer_tab_wilaya(tab_wilaya);
-    int nb_enregistremen;
-    lovc* f = creer_Livrets_National(tab_wilaya,&nb_enregistremen);
-    afficher_Livrets_National(f);     
+    char *obs, tab[NB_WILAYA_TOTAL][TAILLE_WILAYA], *str, *test, koko[TAILLE_CLE];
+    enrengistrement enr;
+    int nombre = 12, tailleblock = 0;
+    generer_tab_wilaya(tab);
+    alea_enregistrement(&enr,&nombre, tab, &tailleblock);
+    printf("la taille du enr est: %d\n",tailleblock);
+    str = malloc(sizeof(char)* tailleblock);
+    /* printf("observation = %s\n", enr.observation);
+    printf("cle = %s\n", enr.cle);
+    printf("superficie = %s\n", enr.superficie);
+    printf("wilaya = %s\n", enr.wilaya); */
+
+    enr_to_string(enr, &str);
+    printf("%s\n", str);
+   /*  printf("effacer = %d",enr.effacer);
+    printf("the size of the enr est: %d",tailleblock); */
+    for (int i = 0; i < 5; i++)
+    {
+        printf("i = %d",i);
+        printf("obs %d\n", enr.observation);
+        free(*enr.observation);
+        
+        free(str);
+        
+        alea_enregistrement(&enr,&nombre, tab, &tailleblock);
+        printf("la taille du enr est: %d\n",tailleblock);
+        str = malloc(sizeof(char)* tailleblock);
+        enr_to_string(enr, &str);
+        printf("%s\n", str);
+        
+    }
+    
+
+
+    
+
+    /* alea_observation(str, &taille);
+    test = malloc(sizeof(char) * taille);
+    strcpy(test, str);
+    printf("the observation is : %s\n", test);
+    printf("la taille de l'observation est: %d",taille);  */   
+    
     return 0;
 }
+/* void generer_livret(char RES[100]) // generer un livre avec tous ses champs
+{
+char R[100]={'0'};
+char wilaya[15];
+char num[11];
+char observ[50]; char ch[3];
+char super[11]; char tab[3];
+int i,nb,taille; char type;
+
+
+generer_observation(observ); //générer une observation pour le livret du taille variable
+taille=strlen(observ)+39; //calcule de la taille du livret qui est egale à la la taille de tous ses champs du taille fixe=39+ la taille de l'observation
+nb=nb_pos(taille); //on doit savoir le nombre de position dela taille pour la mettre sur 3
+for (i=0 ;i<3-nb ;i++){
+tab[i]='0';
+}
+tab[i]='\0';
+itoa(taille,ch,10); //convertir la taille en chaine de caractere pour pouvoir la concatiner
+strcat(tab,ch); //concatiner la taille avec des '0' pour qu'elle soit sur 3 caractéres
+
+strcpy(R,tab); //copier la taille calculée dans la chaine R qui est initialisé à '0' , car c'est le premier champs dans le livret
+R[3]='0';
+
+
+
+// mettre le champs (effacé) qui est dans la position 3 à 0 car le livret n'est pas encore supprimé
+generer_numero(num); //on génére un numero pour le livret
+strcat(R,num); // mettre le num dans la chaine R
+generer_wilaya(wilaya);// generer une wilaya et la mettre dans la chaine aussi
+strcat(R,wilaya);
+type=generer_type(3); //générer un type qui sera sur un seul caractère, puis le stocker dans sa bonne position (28)
+R[28]=type;
+generer_superficie(super); // on génére une superficie pour le livret
+strcat(R,super);
+strcat(R,observ); //finalement on concatène l'observation, la superficie avec le rest de la chaine R qui contient tous les informations du livret
+R[strlen(R)]='\0'; // pour indiquer la fin du la chaine
+
+// copier la chaine R dans le string RES qui est le resultat cad le livret généré aléatoirement .
+strcpy(RES,R);
+
+} */
