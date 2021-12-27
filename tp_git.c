@@ -5,10 +5,10 @@
 #define TAILLE_BLOC 150        
 #define TAILLE_WILAYA 14
 #define TAILLE_SUPERFICIE 10
-#define MAX_CLE 1000
+#define MAX_CLE 9999999999
+#define MIN_CLE 100
 #define TAILLE_TYPE 1
 #define TAILLE_CLE 10
-#define MIN_CLE 100
 #define MAX_SUPERFICIE 9999999999
 #define MIN_SUPERFICIE 500
 #define NB_WILAYA_TOTAL 58
@@ -22,7 +22,7 @@
 //Declaration de l'enrengistrement 
 typedef struct enrengistrement
 {
-    long long int cle;                      // la clee unique 
+    char cle[10];                           // la clee unique 
     int effacer;                            // champ de supression logiqe
     char wilaya[TAILLE_WILAYA+1];           // champ wilaya ou se trouve le bien
     char superficie[TAILLE_SUPERFICIE+1];   // la superficie du bien
@@ -191,7 +191,7 @@ void  alloc_bloc(lovc *fichier)
 // Retourne la longueure d'un nembre                            
 int longueur(long long int n){
     int count = 0;
-    if(n==0){
+    if(n == 0){
         return 1;
     }
     while (n != 0)
@@ -213,26 +213,33 @@ void int_to_char(long long int number, char* sortie){
     }
     sortie[save] = '\0';
 }
+/* void char_to_int(char *entree, long long int){
+
+} */
+
 
 // convertie un enregistrement a une chaine de caracteres               
-void enr_to_string(enrengistrement info, char** string){
+void enr_to_string(enrengistrement info, char** sortie){
 
-    *string = malloc(sizeof(enrengistrement));
-    char cle[TAILLE_CLE+1];
-    int_to_char(info.cle, cle);
-    strcpy(*string, cle);
-    strcat(*string, "$");           
-    strcat(*string, info.wilaya);
-    strcat(*string, "$");
+    char string [TAILLE_BLOC];
+    *sortie = malloc(sizeof(enrengistrement));
+    char cle[TAILLE_CLE];
+    strcpy(string, info.cle);
+    strcat(string, "$");           
+    strcat(string, info.wilaya);
+    strcat(string, "$");
     char type[2];
     type[0] = info.type;
     type[1] = '\0';
-    strcat(*string, type);
-    strcat(*string, "$");
-    strcat(*string, info.superficie);
-    strcat(*string, "$");
-    strcat(*string, info.observation);
-    strcat(*string, "@");
+    strcat(string, type);
+    strcat(string, "$");
+    strcat(string, info.superficie);
+    strcat(string, "$");
+    strcat(string, info.observation);
+    strcat(string, "@");
+    string[strlen(string)] = '\0';
+    strcpy(*sortie, string);
+    
 }
 
 // a+(rand())%(b-a) 
@@ -244,6 +251,9 @@ void enr_to_string(enrengistrement info, char** string){
 
 
 */
+//__________________________________________________//
+//______________ Fonctions aleatoires ______________//
+//__________________________________________________//
 
 //retourne un nembre aleatoire entre a et b                        
 long long int alea_nb(long long int a ,long long int b){    //   srand(time(NULL));  au debut de la fonction appelante 
@@ -251,9 +261,17 @@ long long int alea_nb(long long int a ,long long int b){    //   srand(time(NULL
 }
 // Retourne une chaine pour le champs superficie                     
 void alea_superficie(char* superficie){
-    char s[TAILLE_SUPERFICIE+1];
+    char s[TAILLE_SUPERFICIE];
     int_to_char(alea_nb(MIN_SUPERFICIE,MAX_SUPERFICIE),s);
-    strcpy(superficie,s); 
+    strcpy(superficie, s);
+    char c[TAILLE_SUPERFICIE];
+    for (int i = 0; i < TAILLE_SUPERFICIE - strlen(superficie); i++)
+    {
+        c[i] = '0';
+    }
+    c[TAILLE_SUPERFICIE - strlen(superficie)] = '\0';
+    strcat(c, superficie);
+    strcpy(superficie, c);
 }
 
 // Retourne un type aleatoire                                           
@@ -281,94 +299,108 @@ char alea_type(){
     }
 }
 //generer une observation aleatoirement                                      ***** marche *****     
-void alea_observation(char** obs){
-    int min_taille = TAILLE_CLE+TAILLE_SUPERFICIE+TAILLE_TYPE+TAILLE_WILAYA;
-    int taille = alea_nb(min_taille,TAILLE_BLOC-min_taille-2);
-    printf("taille  = %d\n",taille); 
-    *obs = malloc(sizeof(char)*taille);
-    int i,i1 , i2, i3 , count = 0;
-    char c[2];
-    c[0]=alea_nb(65,90);
-    c[1]='\0';
-    strcpy(*obs,c);
-    for(count = 1 ; count<taille ; count++)
-    {
-        i = alea_nb(0,3);
-        i1 = alea_nb(48,57);
-        i2 = alea_nb(65,90);
-        i3 = alea_nb(97,122);
-        switch (i)
+void alea_observation(char *obs, int* taille) 
+{ 
+    int n, i, choose;
+    char alphabet[26] = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
+    char alphabet_majuscule [26] = {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+    char numbers[10] = {'1','2','3','4','5','6','7','8','9'};
+    int min_taille = TAILLE_CLE + TAILLE_SUPERFICIE + TAILLE_TYPE + TAILLE_WILAYA ;
+    *taille = alea_nb(2, TAILLE_BLOC - min_taille - 2);
+    for (i = 0; i < *taille; i++)
         {
-        case 0:
-            c[0]= 32 ;
-            strcat(*obs,c); 
-            break;
-        case 1:
-            c[0]= i1 ;
-            strcat(*obs,c);
-            break;
-        case 2:
-            c[0]= i2 ;
-            strcat(*obs,c);
-            break;
-        case 3:
-            c[0]= i3 ;
-            strcat(*obs,c);
-            break;    
-        default:
-            printf("un probleme dans la fonction alea_observation \n");
-            break;
+            choose = rand() % 3;
+            switch (choose)
+            {
+            case 0:
+                n = rand() % 26;
+                obs[i] = alphabet[n]; 
+                break;
+            case 1:
+                n = rand() % 26;
+                obs[i] = alphabet_majuscule[n];
+            case 2:
+                n = rand() % 10;
+                obs[i] = numbers[n];  
+            default:
+                obs[i] = 32;
+                break;
+            }
         }
-
-    }
-    *(*obs + count)='\0';
-
+    obs[*taille] = '\0';
 }
 /////////////////////
 
-// generer le tableau des wilaya                                          ***** marche *****
+// generer le tableau des wilaya                                          
 void generer_tab_wilaya(char tab[NB_WILAYA_TOTAL][TAILLE_WILAYA] ){
+   
     FILE* f = fopen("wilaya.txt","r");
-    if (f == NULL){
+    if (f==NULL){
         printf("le fichier n'a pas etait ouvert \n");
-        return ;
+        return;
     }
     else
     {
-        char w[20];
-        for(int i = 0 ; i < 61 ; i++){
+        char w[TAILLE_WILAYA+1];
+        for(int i = 0 ; i < NB_WILAYA_TOTAL ; i++){
             fscanf(f,"%s",w);
-            strcpy(tab[i],  w); 
+            for (int j = 0 ; j<=strlen(w)+1; j++) 
+            { 
+                tab[i][j] = w[j];
+            } 
         }
-    }
+    }   
 }
 
-// generer une wilaya aleatoirement                             ***** marche ***** 
-void alea_wilaya(char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1], char* wilaya){
-    int i = alea_nb(0,NB_WILAYA_TOTAL-1);
+// generer une wilaya aleatoirement                             
+void alea_wilaya(char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA], char wilaya[14]){
+    int i = alea_nb(0, NB_WILAYA_TOTAL);
     strcpy(wilaya,tab_wilaya[i]);
+    for (int i = strlen(wilaya); i < 14; i++)
+    {
+        wilaya[i] = '0'; 
+    }
+    wilaya[14] = '\0';  
+}
+void alea_cle(int min, char c[TAILLE_CLE]){
+    int x = alea_nb(min, MAX_CLE);
+    char cle[TAILLE_CLE];
+    for (int i = 0; i < TAILLE_CLE - longueur(x); i++)
+    {
+        cle[i] = '0';
+    }
+    cle[TAILLE_CLE - longueur(x)] = '\0';
+    int_to_char(x, c);
+    strcat(cle, c);
+    strcpy(c, cle);
 }
 
-// generer un enregistrement aleatoire                          ***** marche *****
-void alea_enregistrement(enrengistrement* enr, int min , char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA+1]){
-    char wilaya[TAILLE_WILAYA+1];
-    long long int cle;
-    char superficie[TAILLE_SUPERFICIE+1];
-    char* observation;
+// generer un enregistrement aleatoire                          
+void alea_enregistrement(enrengistrement* enr, int* min , char tab_wilaya[NB_WILAYA_TOTAL][TAILLE_WILAYA], int *taille){
+    char wilaya[TAILLE_WILAYA];
+    char cle[TAILLE_CLE];
+    int taille_obs;
+    char superficie[TAILLE_SUPERFICIE + 1];
+    char observation[TAILLE_BLOC];
     enr->effacer = 0;
-    enr->cle = alea_nb(min,MAX_CLE);
+    alea_cle(*min, cle);
+    strcpy(enr->cle, cle);
+    *min =  atoi(enr->cle) + 1;
+    *min %= MAX_CLE;
     alea_wilaya(tab_wilaya,wilaya);
     strcpy(enr->wilaya,wilaya);
-    enr->type = alea_type();
+    enr->type = alea_type(); 
     alea_superficie(superficie);
     strcpy(enr->superficie,superficie);
-    alea_observation(&observation);
-    enr->observation = malloc(sizeof(char)*(strlen(observation)+1));
-    strcpy(enr->observation,observation);  
+    alea_observation(observation, &taille_obs);
+    enr->observation = malloc(sizeof(char) * taille_obs);
+    strcpy(enr->observation, observation);
+    *taille = taille_obs + TAILLE_CLE + TAILLE_SUPERFICIE + TAILLE_TYPE + TAILLE_WILAYA + 1; // 1 pour le champ effacer 
+    enr->effacer = 0;
 }
 
 // afficher entete
-void affichier_entete(lovc* f){
+void afficher_entete(lovc* f){
     printf("entete.tete = %d\n",Entete_info(f,1));
     printf("entete.nb_ind = %d\n",Entete_info(f,2));
     printf("entete.nb_sup = %d\n",Entete_info(f,3));
@@ -379,8 +411,8 @@ void affichier_entete(lovc* f){
 // aficher le ième bloc
 void afficher_bloc(lovc* fich , int i ){
     maillon buf;
-    LireDir(fich,i,&buf);
-    if(strlen(buf.tab)==0)
+    LireDir(fich, i, &buf);
+    if(strlen(buf.tab) == 0)
         printf("le buffers est vide \n");
     else
         printf("%s \n",buf.tab);
@@ -396,10 +428,91 @@ void copier_entete(lovc* fich, Entete* entete){
 }
 
 
-int main(){ 
-    char tab[NB_WILAYA_TOTAL][TAILLE_WILAYA], wilaya[TAILLE_WILAYA];
+
+int main(){
+    srand(time(NULL));
+    char *obs, tab[NB_WILAYA_TOTAL][TAILLE_WILAYA], *str, *test, koko[TAILLE_CLE];
+    enrengistrement enr;
+    int nombre = 12, tailleblock = 0;
     generer_tab_wilaya(tab);
-    alea_wilaya(tab, wilaya);
-    printf("the wilaya is: %s",wilaya);
+    alea_enregistrement(&enr,&nombre, tab, &tailleblock);
+    printf("la taille du enr est: %d\n",tailleblock);
+    str = malloc(sizeof(char)* tailleblock);
+    /* printf("observation = %s\n", enr.observation);
+    printf("cle = %s\n", enr.cle);
+    printf("superficie = %s\n", enr.superficie);
+    printf("wilaya = %s\n", enr.wilaya); */
+
+    enr_to_string(enr, &str);
+    printf("%s\n", str);
+   /*  printf("effacer = %d",enr.effacer);
+    printf("the size of the enr est: %d",tailleblock); */
+    for (int i = 0; i < 5; i++)
+    {
+        printf("i = %d",i);
+        printf("obs %d\n", enr.observation);
+        free(*enr.observation);
+        
+        free(str);
+        
+        alea_enregistrement(&enr,&nombre, tab, &tailleblock);
+        printf("la taille du enr est: %d\n",tailleblock);
+        str = malloc(sizeof(char)* tailleblock);
+        enr_to_string(enr, &str);
+        printf("%s\n", str);
+        
+    }
+    
+
+
+    
+
+    /* alea_observation(str, &taille);
+    test = malloc(sizeof(char) * taille);
+    strcpy(test, str);
+    printf("the observation is : %s\n", test);
+    printf("la taille de l'observation est: %d",taille);  */   
+    
     return 0;
 }
+/* void generer_livret(char RES[100]) // generer un livre avec tous ses champs
+{
+char R[100]={'0'};
+char wilaya[15];
+char num[11];
+char observ[50]; char ch[3];
+char super[11]; char tab[3];
+int i,nb,taille; char type;
+
+
+generer_observation(observ); //générer une observation pour le livret du taille variable
+taille=strlen(observ)+39; //calcule de la taille du livret qui est egale à la la taille de tous ses champs du taille fixe=39+ la taille de l'observation
+nb=nb_pos(taille); //on doit savoir le nombre de position dela taille pour la mettre sur 3
+for (i=0 ;i<3-nb ;i++){
+tab[i]='0';
+}
+tab[i]='\0';
+itoa(taille,ch,10); //convertir la taille en chaine de caractere pour pouvoir la concatiner
+strcat(tab,ch); //concatiner la taille avec des '0' pour qu'elle soit sur 3 caractéres
+
+strcpy(R,tab); //copier la taille calculée dans la chaine R qui est initialisé à '0' , car c'est le premier champs dans le livret
+R[3]='0';
+
+
+
+// mettre le champs (effacé) qui est dans la position 3 à 0 car le livret n'est pas encore supprimé
+generer_numero(num); //on génére un numero pour le livret
+strcat(R,num); // mettre le num dans la chaine R
+generer_wilaya(wilaya);// generer une wilaya et la mettre dans la chaine aussi
+strcat(R,wilaya);
+type=generer_type(3); //générer un type qui sera sur un seul caractère, puis le stocker dans sa bonne position (28)
+R[28]=type;
+generer_superficie(super); // on génére une superficie pour le livret
+strcat(R,super);
+strcat(R,observ); //finalement on concatène l'observation, la superficie avec le rest de la chaine R qui contient tous les informations du livret
+R[strlen(R)]='\0'; // pour indiquer la fin du la chaine
+
+// copier la chaine R dans le string RES qui est le resultat cad le livret généré aléatoirement .
+strcpy(RES,R);
+
+} */
